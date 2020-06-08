@@ -67,7 +67,7 @@ export abstract class ActiveRecord<T extends {}> {
   static async findByIdOrFail<T extends ActiveRecord<any>>(
     this: Class<T>,
     id: string | ObjectId,
-  ): Promise<T | undefined> {
+  ): Promise<T> {
     return getEntityManager().findByIdOrFail(this, id);
   }
 

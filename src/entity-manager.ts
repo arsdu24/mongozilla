@@ -156,7 +156,7 @@ class EntityManager {
   async findByIdOrFail<T extends {}>(
     entityKlass: Class<T> | Function,
     id: string | ObjectId,
-  ): Promise<T | undefined> {
+  ): Promise<T> {
     const entity: T | undefined = await this.findById(entityKlass, id);
 
     if (!entity) {
