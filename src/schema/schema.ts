@@ -25,6 +25,11 @@ export class Schema<T extends {}> {
     };
   }
 
+  isValid(): boolean {
+    return ![...this.relations.values()]
+        .some(relation => !relation.isValid())
+  }
+
   get collection(): Collection {
     return getConnection(this.options.connection).getCollection(
       this.options.collection,
