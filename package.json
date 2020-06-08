@@ -1,6 +1,6 @@
 {
-  "name": "mongozilla",
-  "version": "0.0.1",
+  "name": "@mongozilla/mongozilla",
+  "version": "0.0.2",
   "description": "MongoDb ORM",
   "main": "index.js",
   "files": [
@@ -64,5 +64,21 @@
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "directories": {
+    "example": "example"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arsdu24/mongozilla.git"
+  },
+  "keywords": [
+    "mongodb",
+    "orm",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/arsdu24/mongozilla/issues"
+  },
+  "homepage": "https://github.com/arsdu24/mongozilla#readme"
 }
