@@ -39,6 +39,10 @@ export function getConnection(name = 'default'): Connection {
 
 export async function connect(
   options: MongoClientOptions & { uri: string; name?: string },
-) {
-  await new Connection(options).connect();
+): Promise<Connection> {
+  const connection: Connection = new Connection(options);
+
+  await connection.connect();
+
+  return connection
 }
