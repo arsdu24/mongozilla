@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 export type SearchOptionsCriteria<T extends {}> = {
   $sort?: SearchSortCriteria<T>;
   $skip?: number;
@@ -5,5 +7,9 @@ export type SearchOptionsCriteria<T extends {}> = {
 };
 
 export type SearchSortCriteria<T extends {}> = {
-  [P in keyof T]?: T[P] extends {} ? SearchSortCriteria<T[P]> : -1 | 1;
+  [P in keyof T]?: T[P] extends {}
+    ? T[P] extends ObjectId
+      ? -1 | 1
+      : SearchSortCriteria<T[P]>
+    : -1 | 1;
 };

@@ -1,8 +1,16 @@
 import { Class, DeepPartial } from 'utility-types';
 import { getEntityManager } from './entity-manager';
-import { SearchCriteria, SearchOptionsCriteria } from './interfaces/criteria';
+import {
+  SearchCriteria,
+  SearchOptionsCriteria,
+  UpdateCriteria,
+} from './interfaces/criteria';
 import { getSchemaFor } from './schema';
-import { ObjectId } from 'mongodb';
+import {
+  DeleteWriteOpResultObject,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
 
 export abstract class ActiveRecord<T extends {}> {
   constructor(partial?: DeepPartial<T> | T) {
@@ -27,29 +35,22 @@ export abstract class ActiveRecord<T extends {}> {
   }
 
   async remove(): Promise<boolean> {
-    return getEntityManager().remove<T>(this as any);
+    return getEntityManager().removeEntity<T>(this as any);
   }
 
   async reload(): Promise<T> {
     return getEntityManager().reload<T>(this as any);
   }
 
-  static create<T extends ActiveRecord<any>>(
-    this: Class<T>,
-    partial?: DeepPartial<T> | T,
-  ): T {
+  static create<T extends {}>(this: Class<T>, partial?: DeepPartial<T> | T): T {
     return new this(partial);
   }
 
-  static merge<T extends ActiveRecord<any>>(
-    this: Class<T>,
-    entity: T,
-    ...partials: (DeepPartial<T> | T)[]
-  ): T {
+  static merge<T extends {}>(this: Class<T>, entity: T, ...partials: any[]): T {
     return getEntityManager().merge(this, entity, ...partials);
   }
 
-  static async find<T extends ActiveRecord<any>>(
+  static async find<T extends {}>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -57,21 +58,29 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().find(this, criteria, options);
   }
 
-  static async findById<T extends ActiveRecord<any>>(
+  static async findAndCount<T extends {}>(
+    this: Class<T>,
+    criteria?: SearchCriteria<T>,
+    options?: SearchOptionsCriteria<T>,
+  ): Promise<[T[], number]> {
+    return getEntityManager().findAndCount(this, criteria, options);
+  }
+
+  static async findById<T extends {}>(
     this: Class<T>,
     id: string | ObjectId,
   ): Promise<T | undefined> {
     return getEntityManager().findById(this, id);
   }
 
-  static async findByIdOrFail<T extends ActiveRecord<any>>(
+  static async findByIdOrFail<T extends {}>(
     this: Class<T>,
     id: string | ObjectId,
   ): Promise<T> {
     return getEntityManager().findByIdOrFail(this, id);
   }
 
-  static async findOne<T extends ActiveRecord<any>>(
+  static async findOne<T extends {}>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -79,7 +88,7 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().findOne(this, criteria, options);
   }
 
-  static async findOneOrFail<T extends ActiveRecord<any>>(
+  static async findOneOrFail<T extends {}>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -87,38 +96,34 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().findOneOrFail(this, criteria, options);
   }
 
-  static async save<T extends ActiveRecord<any>>(
-    this: Class<T>,
-    entity: T,
-  ): Promise<T> {
+  static async save<T extends {}>(this: Class<T>, entity: T): Promise<T> {
     return getEntityManager().save(entity);
   }
 
-  static async update<T extends ActiveRecord<any>>(
+  static async update<T extends {}>(
     this: Class<T>,
-    entity: T,
-  ): Promise<T> {
-    return getEntityManager().update(entity);
+    criteria: SearchCriteria<T>,
+    update: DeepPartial<T> | T | UpdateCriteria<T>,
+  ): Promise<UpdateWriteOpResult> {
+    return getEntityManager().update(this, criteria, update);
   }
 
-  static async insertOne<T extends ActiveRecord<any>>(
+  static async insert<T extends {}>(
     this: Class<T>,
-    partials: DeepPartial<T> | T,
-  ): Promise<T> {
+    partials: any[],
+  ): Promise<T[]>;
+  static async insert<T extends {}>(this: Class<T>, partials: any): Promise<T>;
+  static async insert<T extends {}>(
+    this: Class<T>,
+    partials: any | any[],
+  ): Promise<T | T[]> {
     return getEntityManager().insert(this, partials);
   }
 
-  static async insertMany<T extends ActiveRecord<any>>(
+  static async remove<T extends {}>(
     this: Class<T>,
-    ...partials: (DeepPartial<T> | T)[]
-  ): Promise<T[]> {
-    return getEntityManager().insert(this, partials);
-  }
-
-  static async remove<T extends ActiveRecord<any>>(
-    this: Class<T>,
-    entity: T,
-  ): Promise<boolean> {
-    return getEntityManager().remove(entity);
+    criteria: SearchCriteria<T>,
+  ): Promise<DeleteWriteOpResultObject> {
+    return getEntityManager().remove(this, criteria);
   }
 }

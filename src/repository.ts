@@ -52,7 +52,7 @@ export abstract class Repository<T extends {}> {
   }
 
   async update(entity: T): Promise<T> {
-    return getEntityManager().update(entity);
+    return getEntityManager().updateEntity(entity);
   }
 
   async insertOne(partials: DeepPartial<T> | T): Promise<T> {
@@ -64,6 +64,6 @@ export abstract class Repository<T extends {}> {
   }
 
   async remove(entity: T): Promise<boolean> {
-    return getEntityManager().remove(entity);
+    return getEntityManager().removeEntity(entity);
   }
 }

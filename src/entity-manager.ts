@@ -1,16 +1,8 @@
-import { Class, DeepPartial } from 'utility-types';
-import {
-  flow,
-  head,
-  intersection,
-  isObject,
-  keys,
-  overEvery,
-  overSome,
-} from 'lodash/fp';
-import { getSchemaFor, Schema } from './schema';
-import { SearchCriteria, SearchOptionsCriteria } from './interfaces/criteria';
-import { ObjectId } from 'mongodb';
+import {Class, DeepPartial} from 'utility-types';
+import {isObject, overEvery, overSome,} from 'lodash/fp';
+import {getSchemaFor, Schema} from './schema';
+import {isUpdateCriteria, SearchCriteria, SearchOptionsCriteria, UpdateCriteria,} from './interfaces/criteria';
+import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
 
 class EntityManager {
   private static instance?: EntityManager;
@@ -36,10 +28,7 @@ class EntityManager {
     previousPath?: string,
   ): any {
     const isQuery = overSome([
-      overEvery([
-        isObject,
-        flow([keys, intersection(['$exists', '$eq', '$ne', '$in']), head]),
-      ]),
+      overEvery([isObject]),
       (obj) => obj instanceof ObjectId,
     ]);
 
@@ -111,6 +100,16 @@ class EntityManager {
     return this.search(entityKlass, criteria, options);
   }
 
+  async findAndCount<T extends {}>(
+    entityKlass: Class<T> | Function,
+    criteria?: SearchCriteria<T>,
+    options?: SearchOptionsCriteria<T>,
+  ): Promise<[T[], number]> {
+    const entities: T[] = await this.search(entityKlass, criteria, options);
+
+    return [entities, entities.length];
+  }
+
   async findOne<T extends {}>(
     entityKlass: Class<T> | Function,
     criteria?: SearchCriteria<T>,
@@ -166,7 +165,7 @@ class EntityManager {
     return entity;
   }
 
-  async update<T extends {}>(entity: T): Promise<T> {
+  async updateEntity<T extends {}>(entity: T): Promise<T> {
     const entityKlass: Class<T> = entity.constructor as Class<any>;
     const schema: Schema<T> = getSchemaFor(entityKlass);
     const query: any = schema.getTargetSearchCriteria(entity);
@@ -177,6 +176,46 @@ class EntityManager {
       entityKlass,
       entity,
       await this.findOneOrFail(entityKlass, query),
+    );
+  }
+
+  async update<T extends {}>(
+    entityKlass: Class<any>,
+    criteria: SearchCriteria<T>,
+    update: DeepPartial<T> | T | UpdateCriteria<T>,
+  ): Promise<UpdateWriteOpResult> {
+    const schema: Schema<T> = getSchemaFor(entityKlass);
+    let updateQuery: any = {};
+
+    if (isUpdateCriteria(update)) {
+      if (update.$inc) {
+        updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
+          schema.prepareSearchCriteria(update.$inc as any),
+        );
+      }
+
+      if (update.$set) {
+        updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
+          schema.prepareSearchCriteria(update.$set as any),
+        );
+      }
+
+      if (update.$unset) {
+        updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
+          schema.prepareSearchCriteria(update.$unset as any),
+        );
+      }
+    } else {
+      updateQuery = this.mapSearchCriteriaToMatchPipeline(
+        schema.prepareSearchCriteria(update),
+      );
+    }
+
+    return schema.update(
+      this.mapSearchCriteriaToMatchPipeline(
+        schema.prepareSearchCriteria(criteria),
+      ),
+      updateQuery,
     );
   }
 
@@ -214,7 +253,7 @@ class EntityManager {
     const schema: Schema<T> = getSchemaFor(entityKlass);
 
     if (!this.isNew(entity)) {
-      return this.update(entity);
+      return this.updateEntity(entity);
     }
 
     return this.merge(
@@ -240,16 +279,29 @@ class EntityManager {
     );
   }
 
-  async remove<T extends {}>(entity: T): Promise<boolean> {
+  async remove<T extends {}>(
+    entityKlass: Class<any>,
+    criteria: SearchCriteria<T>,
+  ): Promise<DeleteWriteOpResultObject> {
+    const schema: Schema<T> = getSchemaFor(entityKlass);
+
+    return await schema.remove(
+      this.mapSearchCriteriaToMatchPipeline(
+        schema.prepareSearchCriteria(criteria),
+      ),
+    );
+  }
+
+  async removeEntity<T extends {}>(entity: T): Promise<boolean> {
     const entityKlass: Class<T> = entity.constructor as Class<any>;
     const schema: Schema<T> = getSchemaFor(entityKlass);
 
     if (!this.isNew(entity)) {
-      const removed: number = await schema.remove(
+      const result: DeleteWriteOpResultObject = await schema.remove(
         schema.getTargetSearchCriteria(entity),
       );
 
-      return removed === 1;
+      return result.deletedCount === 1;
     }
 
     return false;

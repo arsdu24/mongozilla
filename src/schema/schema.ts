@@ -3,7 +3,12 @@ import { camelCase, endsWith, mergeAll, identity } from 'lodash/fp';
 import { EntityLike, ISchemaOptions, SearchCriteria } from '../interfaces';
 import { PropertySchema } from './property.schema';
 import { Relation } from '../relations';
-import { Collection, ObjectId } from 'mongodb';
+import {
+  Collection,
+  DeleteWriteOpResultObject,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
 import { getConnection } from '../connection';
 
 export class Schema<T extends {}> {
@@ -26,8 +31,9 @@ export class Schema<T extends {}> {
   }
 
   isValid(): boolean {
-    return ![...this.relations.values()]
-        .some(relation => !relation.isValid())
+    return ![...this.relations.values()].some(
+      (relation) => !relation.isValid(),
+    );
   }
 
   get collection(): Collection {
@@ -259,8 +265,11 @@ export class Schema<T extends {}> {
     });
   }
 
-  async update(criteria: SearchCriteria<T>, update: any): Promise<void> {
-    await this.collection.updateMany(
+  async update(
+    criteria: SearchCriteria<T>,
+    update: any,
+  ): Promise<UpdateWriteOpResult> {
+    return this.collection.updateMany(
       this.prepareSearchCriteria(criteria),
       update,
     );
@@ -281,9 +290,7 @@ export class Schema<T extends {}> {
     ]);
   }
 
-  async remove(query: any): Promise<number> {
-    const result = await this.collection.deleteMany(query);
-
-    return result.deletedCount || 0;
+  async remove(query: any): Promise<DeleteWriteOpResultObject> {
+    return this.collection.deleteMany(query);
   }
 }

@@ -44,5 +44,5 @@ export async function connect(
 
   await connection.connect();
 
-  return connection
+  return connection;
 }
