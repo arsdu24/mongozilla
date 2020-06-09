@@ -1,6 +1,6 @@
 {
   "name": "@mongozilla/mongozilla",
-  "version": "0.0.22",
+  "version": "0.0.34",
   "description": "MongoDb ORM",
   "main": "index.js",
   "files": [
@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "rm -rf ./dist && tsc",
+    "start": "ts-node ./example/main.ts",
     "format": "prettier --write \"(src|test)/**/*.ts\"",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",

@@ -11,9 +11,10 @@ export class HasOneRelation<Parent extends {}, Child extends {}>
 
   mapForeign(entity: Parent, prop: keyof Parent): Parent {
     const ChildClass: Class<Child> = this.childRef();
-    const child: Child = new ChildClass(entity[prop]);
 
-    return this.parentSchema.assign(entity, { [prop]: child } as any);
+    entity[prop] = new ChildClass(entity[prop]) as any;
+
+    return entity;
   }
 
   getForeignSchema(): Schema<Child> {

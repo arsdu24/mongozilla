@@ -3,10 +3,9 @@ import {Order} from "./order.entity";
 import {Item} from "./item.entity";
 
 connect({
-    uri: process.env.MONGO_URL!
+    uri: process.env.MONGO_URL || 'mongodb+srv://aggregator_dev:aggregator_dev@cluster0-epwwu.gcp.mongodb.net/smartemail-types'
 })
     .then(() => Order.findOneOrFail({
-        id: '5edcfb87b0a4a6d9d2787529',
         qty: {
             $ne: 10
         }

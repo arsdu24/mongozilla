@@ -135,27 +135,60 @@ export class Schema<T extends {}> {
     return this;
   }
 
-  getDefaultValues(byAlias?: boolean): DeepPartial<T> {
+  prepareOrigin(data: any): any {
     return [...this.properties.values()].reduce(
-      (def: any, propSchema: PropertySchema<T>) =>
-        propSchema.setEntityDefault(def, byAlias),
-      { _id: new ObjectId() } as any,
+      (def: EntityLike<T>, schema: PropertySchema<T>) => ({
+        ...def,
+        [schema.getOriginName()]:
+          schema.getDefault() || data[schema.getOriginName()],
+      }),
+      {} as EntityLike<T>,
     );
   }
 
-  assign(entity: T, ...partial: (DeepPartial<T> | T)[]): T {
-    const { _id } = entity as EntityLike<T>;
-    const merged = mergeAll([
+  proxyEntitiesProps(entity: T, data: any = {}) {
+    const origin: any = this.prepareOrigin(data);
+
+    Object.defineProperties(entity, {
+      _origin: {
+        get: () => origin,
+        set: identity,
+        enumerable: false,
+      },
+    });
+
+    Object.defineProperties(
       entity,
-      ...partial,
-      { _id: _id || new ObjectId() },
-    ]);
-    const sanitized = [...this.properties.values()].reduce(
-      (entity: T, schema: PropertySchema<T>) => schema.sanitizeEntity(entity),
-      merged,
+      [...this.properties.values()].reduce(
+        (
+          descriptor: PropertyDescriptorMap,
+          schema: PropertySchema<T>,
+        ): PropertyDescriptorMap => ({
+          ...descriptor,
+          [schema.getPropName()]: schema.getDescriptor(entity),
+        }),
+        {},
+      ),
     );
 
-    return Object.assign(entity, sanitized);
+    [...this.relations.keys()].reduce((entity: T, prop: keyof T) => {
+      entity[prop] = data[prop];
+
+      return entity;
+    }, entity);
+
+    [...this.relations.entries()].reduce(
+      (entity: T, [prop, relation]) => relation.mapForeign(entity, prop),
+      entity,
+    );
+  }
+
+  replaceOrigin(from: EntityLike<T>, to: EntityLike<T>) {
+    from._origin = { ...to._origin };
+  }
+
+  assign(entity: T, ...partial: (DeepPartial<T> | T)[]): T {
+    return mergeAll([entity, ...partial]);
   }
 
   makeRelationsPipe(): any[] {
@@ -197,7 +230,7 @@ export class Schema<T extends {}> {
   }
 
   isNew(entity: T): boolean {
-    return !(entity as EntityLike<T>)._stored;
+    return !(entity as EntityLike<T>)._origin?._id;
   }
 
   getIdProp(): keyof T {
@@ -220,21 +253,8 @@ export class Schema<T extends {}> {
     return { [this.getIdProp()]: this.getId(entity) };
   }
 
-  getOrigin(entity: T): any {
-    return [...this.properties.values()].reduce(
-      (origin: any, propSchema: PropertySchema<T>) => {
-        const prop: keyof T = propSchema.getPropName();
-        const alias: keyof T | undefined = propSchema.getAliasName();
-        const value: any = entity[prop];
-
-        if ('undefined' !== typeof value) {
-          origin[alias || prop] = value;
-        }
-
-        return origin;
-      },
-      {},
-    );
+  getOrigin(entity: EntityLike<T>): any {
+    return entity._origin;
   }
 
   async search(pipeline: any[]): Promise<T[]> {
@@ -245,23 +265,7 @@ export class Schema<T extends {}> {
     const results = await this.collection.aggregate(pipelines).toArray();
 
     return results.map((data: EntityLike<T>) => {
-      const entity: EntityLike<T> = new this.entityClass(data);
-
-      Object.defineProperties(entity, {
-        _id: {
-          get: () => data._id,
-          set: identity,
-        },
-        _stored: {
-          get: () => true,
-          set: identity,
-        },
-      });
-
-      return [...this.relations.entries()].reduce(
-        (entity: T, [prop, relation]) => relation.mapForeign(entity, prop),
-        entity,
-      );
+      return new this.entityClass({ ...data, _stored: true });
     });
   }
 

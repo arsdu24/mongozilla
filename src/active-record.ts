@@ -14,16 +14,9 @@ import {
 
 export abstract class ActiveRecord<T extends {}> {
   constructor(partial?: DeepPartial<T> | T) {
-    const partials: DeepPartial<T>[] = [
-      getSchemaFor((new.target as unknown) as Class<T>).getDefaultValues(),
-      partial as DeepPartial<T>,
-    ].filter((partial: DeepPartial<T> | undefined): partial is DeepPartial<
-      T
-    > => {
-      return !!partial;
-    });
-
-    return getEntityManager().merge(new.target, this as any, ...partials);
+    getSchemaFor(
+      this.constructor as Class<T>,
+    ).proxyEntitiesProps((this as any) as T, { ...partial });
   }
 
   isNew(): boolean {

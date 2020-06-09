@@ -1,8 +1,17 @@
-import {Class, DeepPartial} from 'utility-types';
-import {isObject, overEvery, overSome,} from 'lodash/fp';
-import {getSchemaFor, Schema} from './schema';
-import {isUpdateCriteria, SearchCriteria, SearchOptionsCriteria, UpdateCriteria,} from './interfaces/criteria';
-import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
+import { Class, DeepPartial } from 'utility-types';
+import { isObject, overEvery, overSome } from 'lodash/fp';
+import { getSchemaFor, Schema } from './schema';
+import {
+  isUpdateCriteria,
+  SearchCriteria,
+  SearchOptionsCriteria,
+  UpdateCriteria,
+} from './interfaces/criteria';
+import {
+  DeleteWriteOpResultObject,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
 
 class EntityManager {
   private static instance?: EntityManager;
@@ -172,11 +181,9 @@ class EntityManager {
 
     await schema.update(query, { $set: schema.getOrigin(entity) });
 
-    return this.merge(
-      entityKlass,
-      entity,
-      await this.findOneOrFail(entityKlass, query),
-    );
+    schema.replaceOrigin(entity, await this.findOneOrFail(entityKlass, query));
+
+    return entity;
   }
 
   async update<T extends {}>(
@@ -256,11 +263,12 @@ class EntityManager {
       return this.updateEntity(entity);
     }
 
-    return this.merge(
-      entityKlass,
+    schema.replaceOrigin(
       entity,
       await this.insert(entityKlass, schema.getOrigin(entity)),
     );
+
+    return entity;
   }
 
   async reload<T extends {}>(entity: T): Promise<T> {
@@ -272,11 +280,9 @@ class EntityManager {
     const schema: Schema<T> = getSchemaFor(entityKlass);
     const query: any = schema.getTargetSearchCriteria(entity);
 
-    return this.merge(
-      entityKlass,
-      entity,
-      await this.findOneOrFail(entityKlass, query),
-    );
+    schema.replaceOrigin(entity, await this.findOneOrFail(entityKlass, query));
+
+    return entity;
   }
 
   async remove<T extends {}>(

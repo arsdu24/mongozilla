@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Class } from 'utility-types';
 import { flatten, head } from 'lodash/fp';
-import { PropertyTypes } from '../interfaces';
+import { EntityLike, PropertyTypes } from '../interfaces';
 
 export class PropertySchema<T extends {}> {
   private alias?: keyof T;
@@ -48,6 +48,10 @@ export class PropertySchema<T extends {}> {
     return this;
   }
 
+  getDefault(): any {
+    return this.defValue;
+  }
+
   makeOptional(): this {
     this.optional = true;
 
@@ -60,22 +64,25 @@ export class PropertySchema<T extends {}> {
     return this;
   }
 
-  setEntityDefault(entity: T, byAlias?: boolean): T {
-    if (this.defValue) {
-      const prop: keyof T = this.alias && byAlias ? this.alias : this.property;
+  getDescriptor(entity: EntityLike<T>): PropertyDescriptor {
+    const prop: any = this.alias || this.property;
 
-      entity[prop] = this.defValue;
+    if (
+      'undefined' === typeof entity._origin[prop] &&
+      'undefined' !== typeof this.defValue
+    ) {
+      entity._origin[prop] = this.defValue;
     }
 
-    return entity;
-  }
-
-  sanitizeEntity(entity: T): T {
-    if (this.alias && 'undefined' !== typeof entity[this.alias]) {
-      entity[this.property] = entity[this.alias] as any;
-    }
-
-    return entity;
+    return {
+      get: (): any => {
+        return entity._origin[prop];
+      },
+      set: (v: any): any => {
+        return (entity._origin[prop] = v);
+      },
+      enumerable: true,
+    };
   }
 
   getType(): PropertyTypes {
