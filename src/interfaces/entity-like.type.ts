@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { DeepPartial, NonFunctionKeys } from 'utility-types';
+import {DeepPartial, NonFunctionKeys} from 'utility-types';
 
 export type RawEntity<T> = T extends {}
   ? DeepPartial<Pick<T, NonFunctionKeys<T>>>

@@ -1,4 +1,4 @@
-import { DeepPartial } from 'utility-types';
+import {RawEntity} from "../entity-like.type";
 
 export type KeysWith<T, X> = {
   [P in keyof T]?: X;
@@ -6,8 +6,8 @@ export type KeysWith<T, X> = {
 
 export type UpdateCriteria<T extends {}> = {
   $inc?: KeysWith<T, number>;
-  $set?: DeepPartial<T> | T;
-  $unset?: DeepPartial<T> | T;
+  $set?: RawEntity<T> | T;
+  $unset?: RawEntity<T> | T;
 };
 
 export function isUpdateCriteria(

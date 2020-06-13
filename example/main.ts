@@ -13,7 +13,7 @@ connect({
 
         void orders;
 
-        return orders[0].save()
+        return Order.create({ qty: 12 }).save()
     })
     .then(order => {
 

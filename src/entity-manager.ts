@@ -1,5 +1,5 @@
-import { Class, DeepPartial } from 'utility-types';
-import { getSchemaFor, Schema } from './schema';
+import {Class} from 'utility-types';
+import {getSchemaFor, Schema} from './schema';
 import {
   isSearchCriteria,
   isUpdateCriteria,
@@ -7,11 +7,8 @@ import {
   SearchOptionsCriteria,
   UpdateCriteria,
 } from './interfaces/criteria';
-import {
-  DeleteWriteOpResultObject,
-  ObjectId,
-  UpdateWriteOpResult,
-} from 'mongodb';
+import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
+import {RawEntity} from "./interfaces";
 
 class EntityManager {
   private static instance?: EntityManager;
@@ -25,9 +22,9 @@ class EntityManager {
   }
 
   merge<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     entity: T,
-    ...partials: (DeepPartial<T> | T)[]
+    ...partials: RawEntity<T>[]
   ): T {
     return getSchemaFor(entityKlass as Class<T>).assign(entity, ...partials);
   }
@@ -100,7 +97,7 @@ class EntityManager {
   }
 
   async search<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T[]> {
@@ -119,7 +116,7 @@ class EntityManager {
   }
 
   async find<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T[]> {
@@ -127,7 +124,7 @@ class EntityManager {
   }
 
   async findAndCount<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<[T[], number]> {
@@ -140,14 +137,14 @@ class EntityManager {
   }
 
   async count<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria: SearchCriteria<T>,
   ): Promise<number> {
     return getSchemaFor(entityKlass as Class<T>).count(criteria);
   }
 
   async distinct<T extends {}, X = any>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     distinct: string,
     criteria?: SearchCriteria<T>,
   ): Promise<X[]> {
@@ -158,7 +155,7 @@ class EntityManager {
   }
 
   async findOne<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T | undefined> {
@@ -171,7 +168,7 @@ class EntityManager {
   }
 
   async findOneOrFail<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T> {
@@ -189,7 +186,7 @@ class EntityManager {
   }
 
   async findById<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     id: string | ObjectId,
   ): Promise<T | undefined> {
     const schema: Schema<T> = getSchemaFor(entityKlass as Class<T>);
@@ -200,7 +197,7 @@ class EntityManager {
   }
 
   async findByIdOrFail<T extends {}>(
-    entityKlass: Class<T> | Function,
+    entityKlass: Class<T> ,
     id: string | ObjectId,
   ): Promise<T> {
     const entity: T | undefined = await this.findById(entityKlass, id);
@@ -227,7 +224,7 @@ class EntityManager {
   async update<T extends {}>(
     entityKlass: Class<any>,
     criteria: SearchCriteria<T>,
-    update: DeepPartial<T> | T | UpdateCriteria<T>,
+    update: RawEntity<T> | UpdateCriteria<T>,
   ): Promise<UpdateWriteOpResult> {
     const schema: Schema<T> = getSchemaFor(entityKlass);
     const updateQuery: any = {};
@@ -265,16 +262,16 @@ class EntityManager {
   }
 
   async insert<T extends {}>(
-    entityKlass: Class<T> | Function,
-    partials: DeepPartial<T> | T,
+    entityKlass: Class<T>,
+    partial: RawEntity<T>,
   ): Promise<T>;
   async insert<T extends {}>(
-    entityKlass: Class<T> | Function,
-    partials: (DeepPartial<T> | T)[],
+    entityKlass: Class<T>,
+    partials: RawEntity<T>[],
   ): Promise<T[]>;
   async insert<T extends {}>(
-    entityKlass: Class<T> | Function,
-    partials: DeepPartial<T> | T | (DeepPartial<T> | T)[],
+    entityKlass: Class<T>,
+    partials: RawEntity<T> | RawEntity<T>[],
   ): Promise<T | T[]> {
     const E: Class<T> = entityKlass as Class<T>;
     const schema: Schema<T> = getSchemaFor(E);

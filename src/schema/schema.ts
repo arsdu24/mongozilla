@@ -1,16 +1,10 @@
-import { Class, DeepPartial } from 'utility-types';
-import { camelCase, endsWith, mergeAll, identity } from 'lodash/fp';
-import { EntityLike, ISchemaOptions, SearchCriteria } from '../interfaces';
-import { PropertySchema } from './property.schema';
-import { Relation } from '../relations';
-import {
-  Collection,
-  DeleteWriteOpResultObject,
-  FilterQuery,
-  ObjectId,
-  UpdateWriteOpResult,
-} from 'mongodb';
-import { getConnection } from '../connection';
+import {Class} from 'utility-types';
+import {camelCase, endsWith, identity, mergeAll} from 'lodash/fp';
+import {EntityLike, ISchemaOptions, RawEntity, SearchCriteria} from '../interfaces';
+import {PropertySchema} from './property.schema';
+import {Relation} from '../relations';
+import {Collection, DeleteWriteOpResultObject, FilterQuery, ObjectId, UpdateWriteOpResult,} from 'mongodb';
+import {getConnection} from '../connection';
 
 export class Schema<T extends {}> {
   private primaryKeySchema?: PropertySchema<T>;
@@ -200,7 +194,7 @@ export class Schema<T extends {}> {
     from._origin = this.prepareOrigin({ ...to._origin });
   }
 
-  assign(entity: T, ...partial: (DeepPartial<T> | T)[]): T {
+  assign(entity: T, ...partial: RawEntity<T>[]): T {
     return Object.assign(entity, mergeAll(partial));
   }
 

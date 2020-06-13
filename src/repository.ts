@@ -1,16 +1,17 @@
-import { Class, DeepPartial } from 'utility-types';
-import { getEntityManager } from './entity-manager';
-import { SearchCriteria, SearchOptionsCriteria } from './interfaces/criteria';
-import { ObjectId } from 'mongodb';
+import {Class} from 'utility-types';
+import {getEntityManager} from './entity-manager';
+import {SearchCriteria, SearchOptionsCriteria} from './interfaces/criteria';
+import {ObjectId} from 'mongodb';
+import {RawEntity} from "./interfaces";
 
 export abstract class Repository<T extends {}> {
-  protected constructor(private readonly entityKlass: Class<T> | Function) {}
+  protected constructor(private readonly entityKlass: Class<T>) {}
 
-  create(partial?: DeepPartial<T> | T): T {
+  create(partial?: RawEntity<T>): T {
     return new (this.entityKlass as Class<T>)(partial);
   }
 
-  merge(entity: T, ...partials: (DeepPartial<T> | T)[]): T {
+  merge(entity: T, ...partials: RawEntity<T>[]): T {
     return getEntityManager().merge(this.entityKlass, entity, ...partials);
   }
 
@@ -55,11 +56,11 @@ export abstract class Repository<T extends {}> {
     return getEntityManager().updateEntity(entity);
   }
 
-  async insertOne(partials: DeepPartial<T> | T): Promise<T> {
+  async insertOne(partials: RawEntity<T>): Promise<T> {
     return getEntityManager().insert(this.entityKlass, partials);
   }
 
-  async insertMany(...partials: (DeepPartial<T> | T)[]): Promise<T[]> {
+  async insertMany(...partials: RawEntity<T>[]): Promise<T[]> {
     return getEntityManager().insert(this.entityKlass, partials);
   }
 

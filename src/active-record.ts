@@ -1,17 +1,9 @@
-import { Class, DeepPartial } from 'utility-types';
-import { getEntityManager } from './entity-manager';
-import {
-  SearchCriteria,
-  SearchOptionsCriteria,
-  UpdateCriteria,
-} from './interfaces/criteria';
-import { getSchemaFor } from './schema';
-import {
-  DeleteWriteOpResultObject,
-  ObjectId,
-  UpdateWriteOpResult,
-} from 'mongodb';
-import { RawEntity } from './interfaces';
+import {Class} from 'utility-types';
+import {getEntityManager} from './entity-manager';
+import {SearchCriteria, SearchOptionsCriteria, UpdateCriteria,} from './interfaces/criteria';
+import {getSchemaFor} from './schema';
+import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
+import {RawEntity} from './interfaces';
 
 export abstract class ActiveRecord<T extends {}> {
   constructor(partial?: RawEntity<T>) {
@@ -38,15 +30,15 @@ export abstract class ActiveRecord<T extends {}> {
 
   static create<T extends ActiveRecord<T>, C extends T>(
     this: Class<T>,
-    partial?: DeepPartial<C> | C,
+    partial?: RawEntity<C>,
   ): T {
     return new this(partial);
   }
 
-  static merge<T extends ActiveRecord<T>>(
+  static merge<T extends ActiveRecord<T>, C extends RawEntity<T>>(
     this: Class<T>,
     entity: T,
-    ...partials: any[]
+    ...partials: C[]
   ): T {
     return getEntityManager().merge(this, entity, ...partials);
   }
@@ -122,24 +114,24 @@ export abstract class ActiveRecord<T extends {}> {
   static async update<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria: SearchCriteria<T>,
-    update: DeepPartial<T> | T | UpdateCriteria<T>,
+    update: RawEntity<T> | UpdateCriteria<T>,
   ): Promise<UpdateWriteOpResult> {
     return getEntityManager().update(this, criteria, update);
   }
 
   static async insert<T extends ActiveRecord<T>>(
     this: Class<T>,
-    partials: any[],
+    partials: RawEntity<T>[],
   ): Promise<T[]>;
   static async insert<T extends ActiveRecord<T>>(
     this: Class<T>,
-    partials: any,
+    partials: RawEntity<T>,
   ): Promise<T>;
   static async insert<T extends ActiveRecord<T>>(
     this: Class<T>,
-    partials: any | any[],
+    partials: RawEntity<T> | RawEntity<T>[],
   ): Promise<T | T[]> {
-    return getEntityManager().insert(this, partials);
+    return getEntityManager().insert(this, partials as RawEntity<T>);
   }
 
   static async remove<T extends ActiveRecord<T>>(
