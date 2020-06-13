@@ -5,12 +5,6 @@ import {Item} from "./item.entity";
 connect({
     uri: process.env.MONGO_URL || 'mongodb+srv://aggregator_dev:aggregator_dev@cluster0-epwwu.gcp.mongodb.net/smartemail-types'
 })
-    .then(() => Order.find({
-            options: {
-                name: 12,
-            }
-        }, { $sort: { qty: -1 } })
-    )
     .then(() => Order.insert([
         {price: 111},
         {price: 222},
