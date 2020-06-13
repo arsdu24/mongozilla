@@ -12,7 +12,9 @@ export class BelongsToRelation<Child extends {}, Parent extends {}>
   mapForeign(entity: Child, prop: keyof Child): Child {
     const ParentClass: Class<Parent> = this.parentRef();
 
-    entity[prop] = new ParentClass(entity[prop]) as any;
+    if (entity[prop]) {
+      entity[prop] = new ParentClass(entity[prop]) as any;
+    }
 
     return entity;
   }

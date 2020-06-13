@@ -11,39 +11,47 @@ import {
   ObjectId,
   UpdateWriteOpResult,
 } from 'mongodb';
+import { RawEntity } from './interfaces';
 
 export abstract class ActiveRecord<T extends {}> {
-  constructor(partial?: DeepPartial<T> | T) {
+  constructor(partial?: RawEntity<T>) {
     getSchemaFor(
-      this.constructor as Class<T>,
-    ).proxyEntitiesProps((this as any) as T, { ...partial });
+      this.constructor as Class<any>,
+    ).proxyEntitiesProps((this as any) as any, { ...partial });
   }
 
   isNew(): boolean {
     return getEntityManager().isNew(this);
   }
 
-  async save(): Promise<T> {
-    return getEntityManager().save<T>(this as any);
+  async save(): Promise<this> {
+    return getEntityManager().save<this>(this as any);
   }
 
   async remove(): Promise<boolean> {
-    return getEntityManager().removeEntity<T>(this as any);
+    return getEntityManager().removeEntity<this>(this as any);
   }
 
-  async reload(): Promise<T> {
-    return getEntityManager().reload<T>(this as any);
+  async reload(): Promise<this> {
+    return getEntityManager().reload<this>(this as any);
   }
 
-  static create<T extends {}>(this: Class<T>, partial?: DeepPartial<T> | T): T {
+  static create<T extends ActiveRecord<T>, C extends T>(
+    this: Class<T>,
+    partial?: DeepPartial<C> | C,
+  ): T {
     return new this(partial);
   }
 
-  static merge<T extends {}>(this: Class<T>, entity: T, ...partials: any[]): T {
+  static merge<T extends ActiveRecord<T>>(
+    this: Class<T>,
+    entity: T,
+    ...partials: any[]
+  ): T {
     return getEntityManager().merge(this, entity, ...partials);
   }
 
-  static async find<T extends {}>(
+  static async find<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -51,7 +59,7 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().find(this, criteria, options);
   }
 
-  static async findAndCount<T extends {}>(
+  static async findAndCount<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -59,21 +67,36 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().findAndCount(this, criteria, options);
   }
 
-  static async findById<T extends {}>(
+  static async count<T extends ActiveRecord<T>>(
+    this: Class<T>,
+    criteria: SearchCriteria<T>,
+  ): Promise<number> {
+    return getEntityManager().count(this, criteria);
+  }
+
+  static async distinct<T extends ActiveRecord<T>>(
+    this: Class<T>,
+    distinct: string,
+    criteria?: SearchCriteria<T>,
+  ): Promise<any[]> {
+    return getEntityManager().distinct(this, distinct, criteria);
+  }
+
+  static async findById<T extends ActiveRecord<T>>(
     this: Class<T>,
     id: string | ObjectId,
   ): Promise<T | undefined> {
     return getEntityManager().findById(this, id);
   }
 
-  static async findByIdOrFail<T extends {}>(
+  static async findByIdOrFail<T extends ActiveRecord<T>>(
     this: Class<T>,
     id: string | ObjectId,
   ): Promise<T> {
     return getEntityManager().findByIdOrFail(this, id);
   }
 
-  static async findOne<T extends {}>(
+  static async findOne<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -81,7 +104,7 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().findOne(this, criteria, options);
   }
 
-  static async findOneOrFail<T extends {}>(
+  static async findOneOrFail<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
@@ -89,11 +112,14 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().findOneOrFail(this, criteria, options);
   }
 
-  static async save<T extends {}>(this: Class<T>, entity: T): Promise<T> {
+  static async save<T extends ActiveRecord<T>>(
+    this: Class<T>,
+    entity: T,
+  ): Promise<T> {
     return getEntityManager().save(entity);
   }
 
-  static async update<T extends {}>(
+  static async update<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria: SearchCriteria<T>,
     update: DeepPartial<T> | T | UpdateCriteria<T>,
@@ -101,22 +127,32 @@ export abstract class ActiveRecord<T extends {}> {
     return getEntityManager().update(this, criteria, update);
   }
 
-  static async insert<T extends {}>(
+  static async insert<T extends ActiveRecord<T>>(
     this: Class<T>,
     partials: any[],
   ): Promise<T[]>;
-  static async insert<T extends {}>(this: Class<T>, partials: any): Promise<T>;
-  static async insert<T extends {}>(
+  static async insert<T extends ActiveRecord<T>>(
+    this: Class<T>,
+    partials: any,
+  ): Promise<T>;
+  static async insert<T extends ActiveRecord<T>>(
     this: Class<T>,
     partials: any | any[],
   ): Promise<T | T[]> {
     return getEntityManager().insert(this, partials);
   }
 
-  static async remove<T extends {}>(
+  static async remove<T extends ActiveRecord<T>>(
     this: Class<T>,
     criteria: SearchCriteria<T>,
   ): Promise<DeleteWriteOpResultObject> {
     return getEntityManager().remove(this, criteria);
+  }
+
+  static async aggregate<T extends ActiveRecord<T>, X = any>(
+    this: Class<T>,
+    pipeline: any[],
+  ): Promise<X[]> {
+    return getEntityManager().aggregate(this, pipeline);
   }
 }

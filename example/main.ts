@@ -5,16 +5,21 @@ import {Item} from "./item.entity";
 connect({
     uri: process.env.MONGO_URL || 'mongodb+srv://aggregator_dev:aggregator_dev@cluster0-epwwu.gcp.mongodb.net/smartemail-types'
 })
-    .then(() => Order.findOneOrFail({
-        qty: {
-            $ne: 10
-        }
-    }))
-    .then(order => {
+    .then(() => Order.find({
+            options: {
+                name: 12,
+            }
+        }, { $sort: { qty: -1 } })
+    )
+    .then(() => Order.insert([
+        {price: 111},
+        {price: 222},
+    ]))
+    .then(orders => {
 
-        order.qty++;
+        void orders;
 
-        return order.save()
+        return orders[0].save()
     })
     .then(order => {
 
@@ -36,5 +41,3 @@ connect({
 
         void err
     })
-
-

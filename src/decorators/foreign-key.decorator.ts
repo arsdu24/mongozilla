@@ -1,9 +1,10 @@
 import { KlassPropDecorator } from '../interfaces';
 import { getSchemaFor, PropertySchema, Schema } from '../schema';
 import { Class } from 'utility-types';
+import { ActiveRecord } from '../active-record';
 
-export function ForeignKey(
-  foreignEntity: () => Class<any>,
+export function ForeignKey<T extends ActiveRecord<T>>(
+  foreignEntity: () => Class<T>,
   alias?: string,
 ): KlassPropDecorator {
   return <T extends {}, K extends keyof T>(target: T, propName: K) => {

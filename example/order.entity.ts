@@ -17,8 +17,11 @@ export class Order extends ActiveRecord<Order> {
     itemId!: ObjectId;
 
     @PropertyDefault('Hoho')
-    something!: string
+    something!: string;
+
 
     @BelongsTo(() => Item)
-    item!: Item
+    item!: Item;
 }
+
+new Order()

@@ -6,6 +6,7 @@ import { Relation } from '../relations';
 import {
   Collection,
   DeleteWriteOpResultObject,
+  FilterQuery,
   ObjectId,
   UpdateWriteOpResult,
 } from 'mongodb';
@@ -136,7 +137,7 @@ export class Schema<T extends {}> {
   }
 
   prepareOrigin(data: any): any {
-    return [...this.properties.values()].reduce(
+    const origin: any = [...this.properties.values()].reduce(
       (def: EntityLike<T>, schema: PropertySchema<T>) => ({
         ...def,
         [schema.getOriginName()]:
@@ -144,17 +145,29 @@ export class Schema<T extends {}> {
       }),
       {} as EntityLike<T>,
     );
+
+    Object.defineProperties(origin, {
+      _id: {
+        get: () => data._id || new ObjectId(),
+        set: identity,
+        configurable: false,
+      },
+      _isNew: {
+        value: !data._id,
+        writable: false,
+        configurable: false,
+      },
+    });
+
+    return origin;
   }
 
-  proxyEntitiesProps(entity: T, data: any = {}) {
-    const origin: any = this.prepareOrigin(data);
-
-    Object.defineProperties(entity, {
-      _origin: {
-        get: () => origin,
-        set: identity,
-        enumerable: false,
-      },
+  proxyEntitiesProps(entity: EntityLike<T>, data: any = {}) {
+    Object.defineProperty(entity, '_origin', {
+      value: this.prepareOrigin(data),
+      configurable: false,
+      enumerable: false,
+      writable: true,
     });
 
     Object.defineProperties(
@@ -184,11 +197,11 @@ export class Schema<T extends {}> {
   }
 
   replaceOrigin(from: EntityLike<T>, to: EntityLike<T>) {
-    from._origin = { ...to._origin };
+    from._origin = this.prepareOrigin({ ...to._origin });
   }
 
   assign(entity: T, ...partial: (DeepPartial<T> | T)[]): T {
-    return mergeAll([entity, ...partial]);
+    return Object.assign(entity, mergeAll(partial));
   }
 
   makeRelationsPipe(): any[] {
@@ -204,10 +217,15 @@ export class Schema<T extends {}> {
   prepareSearchCriteria(criteria: SearchCriteria<T>): SearchCriteria<T> {
     return [...this.properties.values()].reduce(
       (criteria: SearchCriteria<T>, propSchema: PropertySchema<T>) => {
-        const alias: keyof T | undefined = propSchema.getAliasName();
-        let value: any = criteria[propSchema.getPropName()];
+        const alias:
+          | keyof SearchCriteria<T>
+          | undefined = propSchema.getAliasName() as keyof SearchCriteria<T>;
+        let value: any =
+          criteria[propSchema.getPropName() as keyof SearchCriteria<T>];
         const rewriteCriteriaValue = (newValue: any) =>
-          (value = criteria[propSchema.getPropName()] = newValue);
+          (value = criteria[
+            propSchema.getPropName() as keyof SearchCriteria<T>
+          ] = newValue);
 
         if (propSchema.getType() === ObjectId && 'string' === typeof value) {
           try {
@@ -220,7 +238,7 @@ export class Schema<T extends {}> {
         if (alias && 'undefined' !== typeof value) {
           criteria[alias] = value;
 
-          delete criteria[propSchema.getPropName()];
+          delete criteria[propSchema.getPropName() as keyof SearchCriteria<T>];
         }
 
         return criteria;
@@ -229,8 +247,8 @@ export class Schema<T extends {}> {
     );
   }
 
-  isNew(entity: T): boolean {
-    return !(entity as EntityLike<T>)._origin?._id;
+  isNew(entity: EntityLike<T>): boolean {
+    return !!entity._origin?._isNew;
   }
 
   getIdProp(): keyof T {
@@ -250,7 +268,7 @@ export class Schema<T extends {}> {
   }
 
   getTargetSearchCriteria(entity: T): any {
-    return { [this.getIdProp()]: this.getId(entity) };
+    return { _id: this.getId(entity) };
   }
 
   getOrigin(entity: EntityLike<T>): any {
@@ -262,11 +280,32 @@ export class Schema<T extends {}> {
       Boolean,
     );
 
-    const results = await this.collection.aggregate(pipelines).toArray();
+    const results = await this.aggregate(pipelines);
 
     return results.map((data: EntityLike<T>) => {
       return new this.entityClass({ ...data, _stored: true });
     });
+  }
+
+  async aggregate<X = any>(pipeline: any[]): Promise<X[]> {
+    return this.collection.aggregate(pipeline).toArray();
+  }
+
+  async count(criteria: SearchCriteria<T>): Promise<number> {
+    return this.collection.countDocuments(this.prepareSearchCriteria(criteria));
+  }
+
+  async distinct<X>(
+    distinct: string,
+    criteria?: SearchCriteria<T>,
+  ): Promise<X[]> {
+    let filter: FilterQuery<T> = {};
+
+    if (criteria) {
+      filter = this.prepareSearchCriteria(criteria) as FilterQuery<T>;
+    }
+
+    return this.collection.distinct(distinct, filter);
   }
 
   async update(
@@ -279,14 +318,14 @@ export class Schema<T extends {}> {
     );
   }
 
-  async insert(partials: any[]): Promise<T[]> {
+  async insert(partials: EntityLike<any>[]): Promise<T[]> {
     const result = await this.collection.insertMany(partials);
     const ids: ObjectId[] = Object.values(result.insertedIds);
 
     return this.search([
       {
         $match: {
-          [this.getIdProp()]: {
+          _id: {
             $in: ids,
           },
         },

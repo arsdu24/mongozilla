@@ -1,6 +1,6 @@
 {
   "name": "@mongozilla/mongozilla",
-  "version": "0.0.34",
+  "version": "0.0.53",
   "description": "MongoDb ORM",
   "main": "index.js",
   "files": [

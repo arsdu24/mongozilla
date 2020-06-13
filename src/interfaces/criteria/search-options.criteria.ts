@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { RawEntity } from '../entity-like.type';
 
 export type SearchOptionsCriteria<T extends {}> = {
   $sort?: SearchSortCriteria<T>;
@@ -7,9 +8,9 @@ export type SearchOptionsCriteria<T extends {}> = {
 };
 
 export type SearchSortCriteria<T extends {}> = {
-  [P in keyof T]?: T[P] extends {}
-    ? T[P] extends ObjectId
+  [P in keyof RawEntity<T>]?: RawEntity<T>[P] extends {}
+    ? RawEntity<T>[P] extends ObjectId
       ? -1 | 1
-      : SearchSortCriteria<T[P]>
+      : SearchSortCriteria<RawEntity<T>[P]>
     : -1 | 1;
 };

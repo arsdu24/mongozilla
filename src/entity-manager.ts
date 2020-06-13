@@ -1,7 +1,7 @@
 import { Class, DeepPartial } from 'utility-types';
-import { isObject, overEvery, overSome } from 'lodash/fp';
 import { getSchemaFor, Schema } from './schema';
 import {
+  isSearchCriteria,
   isUpdateCriteria,
   SearchCriteria,
   SearchOptionsCriteria,
@@ -36,11 +36,6 @@ class EntityManager {
     criteria: SearchCriteria<T>,
     previousPath?: string,
   ): any {
-    const isQuery = overSome([
-      overEvery([isObject]),
-      (obj) => obj instanceof ObjectId,
-    ]);
-
     return Object.entries(criteria).reduce((flatten: any, [name, value]) => {
       const path: string = [previousPath, name].filter(Boolean).join('.');
 
@@ -48,7 +43,7 @@ class EntityManager {
         'object' === typeof value &&
         null !== value &&
         !Array.isArray(value) &&
-        !isQuery(value)
+        !isSearchCriteria(value)
       ) {
         return {
           ...flatten,
@@ -64,6 +59,46 @@ class EntityManager {
     return getSchemaFor(entity.constructor as Class<any>).isNew(entity);
   }
 
+  searchCriteriaToPipeline<T extends {}>(
+    schema: Schema<T>,
+    criteria: SearchCriteria<T>,
+  ): any[] {
+    return [
+      {
+        $match: this.mapSearchCriteriaToMatchPipeline(
+          schema.prepareSearchCriteria(criteria),
+        ),
+      },
+    ];
+  }
+
+  searchOptionsCriteriaToPipeline<T extends {}>(
+    schema: Schema<T>,
+    options: SearchOptionsCriteria<T>,
+  ): any[] {
+    const pipeline: any[] = [];
+
+    if (options.$sort) {
+      pipeline.push({
+        $sort: options.$sort,
+      });
+    }
+
+    if (options.$skip) {
+      pipeline.push({
+        $skip: options.$skip,
+      });
+    }
+
+    if (options.$limit) {
+      pipeline.push({
+        $limit: options.$limit,
+      });
+    }
+
+    return pipeline;
+  }
+
   async search<T extends {}>(
     entityKlass: Class<T> | Function,
     criteria?: SearchCriteria<T>,
@@ -73,29 +108,11 @@ class EntityManager {
     const pipeline: any[] = [];
 
     if (criteria) {
-      pipeline.push({
-        $match: this.mapSearchCriteriaToMatchPipeline(
-          schema.prepareSearchCriteria(criteria),
-        ),
-      });
+      pipeline.push(...this.searchCriteriaToPipeline(schema, criteria));
     }
 
-    if (options?.$sort) {
-      pipeline.push({
-        $sort: options.$sort,
-      });
-    }
-
-    if (options?.$skip) {
-      pipeline.push({
-        $skip: options.$skip,
-      });
-    }
-
-    if (options?.$limit) {
-      pipeline.push({
-        $limit: options.$limit,
-      });
+    if (options) {
+      pipeline.push(...this.searchOptionsCriteriaToPipeline(schema, options));
     }
 
     return await schema.search(pipeline);
@@ -114,9 +131,30 @@ class EntityManager {
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<[T[], number]> {
-    const entities: T[] = await this.search(entityKlass, criteria, options);
+    const [entities, count]: [T[], number] = await Promise.all([
+      await this.search(entityKlass, criteria, options),
+      await this.count(entityKlass, criteria || ({} as SearchCriteria<T>)),
+    ]);
 
-    return [entities, entities.length];
+    return [entities, count];
+  }
+
+  async count<T extends {}>(
+    entityKlass: Class<T> | Function,
+    criteria: SearchCriteria<T>,
+  ): Promise<number> {
+    return getSchemaFor(entityKlass as Class<T>).count(criteria);
+  }
+
+  async distinct<T extends {}, X = any>(
+    entityKlass: Class<T> | Function,
+    distinct: string,
+    criteria?: SearchCriteria<T>,
+  ): Promise<X[]> {
+    return getSchemaFor(entityKlass as Class<T>).distinct<X>(
+      distinct,
+      criteria,
+    );
   }
 
   async findOne<T extends {}>(
@@ -192,7 +230,7 @@ class EntityManager {
     update: DeepPartial<T> | T | UpdateCriteria<T>,
   ): Promise<UpdateWriteOpResult> {
     const schema: Schema<T> = getSchemaFor(entityKlass);
-    let updateQuery: any = {};
+    const updateQuery: any = {};
 
     if (isUpdateCriteria(update)) {
       if (update.$inc) {
@@ -213,7 +251,7 @@ class EntityManager {
         );
       }
     } else {
-      updateQuery = this.mapSearchCriteriaToMatchPipeline(
+      updateQuery.$set = this.mapSearchCriteriaToMatchPipeline(
         schema.prepareSearchCriteria(update),
       );
     }
@@ -245,7 +283,8 @@ class EntityManager {
     const entities: T[] = await schema.insert(
       (Array.isArray(partials) ? partials : [partials])
         .map((partial) => new E(partial))
-        .map((entity) => schema.getOrigin(entity)),
+        .map((entity) => schema.getOrigin(entity))
+        .map(({ _id, _isNew, ...rest }) => rest),
     );
 
     if (!many) {
@@ -311,6 +350,13 @@ class EntityManager {
     }
 
     return false;
+  }
+
+  async aggregate<T extends {}, X = any>(
+    entityKlass: Class<any>,
+    pipeline: any[],
+  ): Promise<X[]> {
+    return getSchemaFor(entityKlass).aggregate<X>(pipeline);
   }
 }
 

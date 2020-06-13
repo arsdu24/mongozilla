@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { RawEntity } from '../entity-like.type';
 
 export type Query<T> = {
   $exists?: boolean;
@@ -12,11 +13,19 @@ export type Query<T> = {
   $lte?: T;
 };
 
-export type SearchCriteria<T extends {}> = {
-  [P in keyof T]?: T[P] extends ObjectId
-    ? ObjectId | string | Query<ObjectId | string>
-    : SearchCriteria<T[P]> | Query<T[P]>;
+type IdSearchCriteria = ObjectId | string | Query<ObjectId | string>;
+
+type TypedSearchCriteria<T> = T extends {} ? SearchCriteria<T> : Query<T>;
+
+type RawEntitySearchCriteria<T extends {}> = {
+  [P in keyof T]?: T extends ObjectId
+    ? IdSearchCriteria
+    : TypedSearchCriteria<T[P]>;
 };
+
+export type SearchCriteria<T extends {}> = RawEntitySearchCriteria<
+  RawEntity<T>
+>;
 
 export function isSearchCriteria(
   criteria: any,
