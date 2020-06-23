@@ -16,9 +16,8 @@ export class Order extends ActiveRecord<Order> {
     @ForeignKey(() => Item)
     itemId!: ObjectId;
 
-    @PropertyDefault('Hoho')
+    @PropertyDefault('Something')
     something!: string;
-
 
     @BelongsTo(() => Item)
     item!: Item;

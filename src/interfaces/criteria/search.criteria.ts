@@ -1,5 +1,8 @@
 import { ObjectId } from 'mongodb';
-import { RawEntity } from '../entity-like.type';
+import { NonFunctionKeys } from 'utility-types';
+
+type Optional<T> = T | undefined;
+type InferType<T> = T extends Optional<infer U> ? U : T;
 
 enum QueryOperatorsEnum {
   EXISTS = '$exists',
@@ -14,6 +17,11 @@ enum QueryOperatorsEnum {
   ELEMENT_MATCH = '$elemMatch',
 }
 
+enum LogicalOperatorsQueryOperatorsEnum {
+  OR = '$or',
+  AND = '$and',
+}
+
 export type Query<T> = {
   [QueryOperatorsEnum.EXISTS]?: boolean;
   [QueryOperatorsEnum.EQUAL]?: T;
@@ -24,25 +32,51 @@ export type Query<T> = {
   [QueryOperatorsEnum.GREATER_THEN_OR_EQUAL]?: T;
   [QueryOperatorsEnum.LESS_THEN]?: T;
   [QueryOperatorsEnum.LESS_THEN_OR_EQUAL]?: T;
-  [QueryOperatorsEnum.ELEMENT_MATCH]?: SearchCriteria<T>;
 };
 
 type IdSearchCriteria = ObjectId | string | Query<ObjectId | string>;
 
-type TypedSearchCriteria<T> = T extends {} ? SearchCriteria<T> : Query<T>;
+type TypedSearchCriteria<T> = T extends object
+  ? T extends (infer U)[]
+    ? U extends object
+      ? Query<T> & {
+          [QueryOperatorsEnum.ELEMENT_MATCH]?: EntityBasedSearchQuery<U>;
+        }
+      : Query<T> | T
+    : EntityBasedSearchQuery<T>
+  : Query<T> | (T extends string ? string | RegExp : T);
 
-type RawEntitySearchCriteria<T extends {}> = {
-  [P in keyof T]?: T extends ObjectId
+type RawEntitySearchCriteria<T extends object> = {
+  [P in keyof T]?: ObjectId extends InferType<T[P]>
     ? IdSearchCriteria
     : TypedSearchCriteria<T[P]>;
 };
 
-export type SearchCriteria<T extends {}> = RawEntitySearchCriteria<
-  RawEntity<T>
+type EntityBasedSearchQuery<T extends object> = RawEntitySearchCriteria<
+  Pick<T, NonFunctionKeys<T>>
 >;
+
+type LogicalOperatorsSearchCriteria<T extends object> = {
+  [LogicalOperatorsQueryOperatorsEnum.OR]?: EntityBasedSearchQuery<T>[];
+  [LogicalOperatorsQueryOperatorsEnum.AND]?: EntityBasedSearchQuery<T>[];
+};
+
+export type SearchCriteria<T extends object> =
+  | EntityBasedSearchQuery<T>
+  | LogicalOperatorsSearchCriteria<T>;
 
 export function isSearchCriteria(
   criteria: any,
 ): criteria is SearchCriteria<any> {
-  return Object.values(QueryOperatorsEnum).some((key) => key in criteria);
+  return Object.values(QueryOperatorsEnum).some(
+    (key: string) => key in criteria,
+  );
+}
+
+export function isLogicalOperatorsSearchCriteria(
+  criteria: any,
+): criteria is LogicalOperatorsSearchCriteria<any> {
+  return Object.values(LogicalOperatorsQueryOperatorsEnum).some(
+    (key: string) => key in criteria,
+  );
 }

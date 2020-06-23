@@ -2,7 +2,7 @@ import { getSchemaFor, Schema } from '../schema';
 import { Relation } from './relation.type';
 import { Class } from 'utility-types';
 
-export class BelongsToRelation<Child extends {}, Parent extends {}>
+export class BelongsToRelation<Child extends object, Parent extends object>
   implements Relation<Child> {
   constructor(
     private childSchema: Schema<Child>,

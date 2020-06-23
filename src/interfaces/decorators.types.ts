@@ -1,4 +1,4 @@
-export type KlassPropDecorator = <T extends {}, K extends keyof T>(
+export type KlassPropDecorator = <T extends object, K extends keyof T>(
   target: T,
   propName: K,
 ) => void;

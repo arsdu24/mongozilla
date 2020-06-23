@@ -1,12 +1,30 @@
-import {Class} from 'utility-types';
-import {camelCase, endsWith, identity, mergeAll} from 'lodash/fp';
-import {EntityLike, ISchemaOptions, RawEntity, SearchCriteria} from '../interfaces';
-import {PropertySchema} from './property.schema';
-import {Relation} from '../relations';
-import {Collection, DeleteWriteOpResultObject, FilterQuery, ObjectId, UpdateWriteOpResult,} from 'mongodb';
-import {getConnection} from '../connection';
+import { Class } from 'utility-types';
+import {
+  camelCase,
+  endsWith,
+  identity,
+  mergeAll,
+  pickBy,
+  isUndefined,
+} from 'lodash/fp';
+import {
+  EntityLike,
+  ISchemaOptions,
+  RawEntity,
+  SearchCriteria,
+} from '../interfaces';
+import { PropertySchema } from './property.schema';
+import { Relation } from '../relations';
+import {
+  Collection,
+  DeleteWriteOpResultObject,
+  FilterQuery,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
+import { getConnection } from '../connection';
 
-export class Schema<T extends {}> {
+export class Schema<T extends object> {
   private primaryKeySchema?: PropertySchema<T>;
   private properties: Map<keyof T, PropertySchema<T>> = new Map();
   private relations: Map<keyof T, Relation<any>> = new Map();
@@ -266,7 +284,9 @@ export class Schema<T extends {}> {
   }
 
   getOrigin(entity: EntityLike<T>): any {
-    return entity._origin;
+    const { _isNew, _id, ...rest } = entity._origin;
+
+    return pickBy((value) => !isUndefined(value), rest);
   }
 
   async search(pipeline: any[]): Promise<T[]> {
@@ -312,8 +332,16 @@ export class Schema<T extends {}> {
     );
   }
 
-  async insert(partials: EntityLike<any>[]): Promise<T[]> {
-    const result = await this.collection.insertMany(partials);
+  async insert(partials: EntityLike<RawEntity<T>>[]): Promise<T[]> {
+    const rawEntities: EntityLike<T>[] = partials.map((partial) =>
+      this.getOrigin(
+        partial instanceof this.entityClass
+          ? partial
+          : new this.entityClass(partial),
+      ),
+    );
+
+    const result = await this.collection.insertMany(rawEntities);
     const ids: ObjectId[] = Object.values(result.insertedIds);
 
     return this.search([

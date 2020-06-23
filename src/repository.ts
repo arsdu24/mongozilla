@@ -1,10 +1,10 @@
-import {Class} from 'utility-types';
-import {getEntityManager} from './entity-manager';
-import {SearchCriteria, SearchOptionsCriteria} from './interfaces/criteria';
-import {ObjectId} from 'mongodb';
-import {RawEntity} from "./interfaces";
+import { Class } from 'utility-types';
+import { getEntityManager } from './entity-manager';
+import { SearchCriteria, SearchOptionsCriteria } from './interfaces/criteria';
+import { ObjectId } from 'mongodb';
+import { RawEntity } from './interfaces';
 
-export abstract class Repository<T extends {}> {
+export abstract class Repository<T extends object> {
   protected constructor(private readonly entityKlass: Class<T>) {}
 
   create(partial?: RawEntity<T>): T {

@@ -1,14 +1,19 @@
-import {Class} from 'utility-types';
-import {getSchemaFor, Schema} from './schema';
+import { Class } from 'utility-types';
+import { getSchemaFor, Schema } from './schema';
 import {
+  isLogicalOperatorsSearchCriteria,
   isSearchCriteria,
   isUpdateCriteria,
   SearchCriteria,
   SearchOptionsCriteria,
   UpdateCriteria,
 } from './interfaces/criteria';
-import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
-import {RawEntity} from "./interfaces";
+import {
+  DeleteWriteOpResultObject,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
+import { RawEntity } from './interfaces';
 
 class EntityManager {
   private static instance?: EntityManager;
@@ -21,18 +26,15 @@ class EntityManager {
     return this.instance;
   }
 
-  merge<T extends {}>(
-    entityKlass: Class<T> ,
+  merge<T extends object>(
+    entityKlass: Class<T>,
     entity: T,
     ...partials: RawEntity<T>[]
   ): T {
     return getSchemaFor(entityKlass as Class<T>).assign(entity, ...partials);
   }
 
-  mapSearchCriteriaToMatchPipeline<T extends {}>(
-    criteria: SearchCriteria<T>,
-    previousPath?: string,
-  ): any {
+  makeFlattenPath(criteria: any, previousPath?: string): any {
     return Object.entries(criteria).reduce((flatten: any, [name, value]) => {
       const path: string = [previousPath, name].filter(Boolean).join('.');
 
@@ -40,11 +42,12 @@ class EntityManager {
         'object' === typeof value &&
         null !== value &&
         !Array.isArray(value) &&
+        !(value instanceof ObjectId) &&
         !isSearchCriteria(value)
       ) {
         return {
           ...flatten,
-          ...this.mapSearchCriteriaToMatchPipeline(value, path),
+          ...this.makeFlattenPath(value, path),
         };
       }
 
@@ -52,24 +55,41 @@ class EntityManager {
     }, {});
   }
 
-  isNew<T extends {}>(entity: T): boolean {
+  mapSearchCriteriaToMatchPipeline<T extends object>(
+    schema: Schema<T>,
+    criteria: SearchCriteria<T>,
+  ): any {
+    if (isLogicalOperatorsSearchCriteria(criteria)) {
+      return Object.entries(criteria).reduce(
+        (flatten: object, [operator, arteries]) => ({
+          ...flatten,
+          [operator]: arteries.map((criteria: SearchCriteria<T>) =>
+            this.makeFlattenPath(schema.prepareSearchCriteria(criteria)),
+          ),
+        }),
+        {},
+      );
+    }
+
+    return this.makeFlattenPath(schema.prepareSearchCriteria(criteria));
+  }
+
+  isNew<T extends object>(entity: T): boolean {
     return getSchemaFor(entity.constructor as Class<any>).isNew(entity);
   }
 
-  searchCriteriaToPipeline<T extends {}>(
+  searchCriteriaToPipeline<T extends object>(
     schema: Schema<T>,
     criteria: SearchCriteria<T>,
   ): any[] {
     return [
       {
-        $match: this.mapSearchCriteriaToMatchPipeline(
-          schema.prepareSearchCriteria(criteria),
-        ),
+        $match: this.mapSearchCriteriaToMatchPipeline(schema, criteria),
       },
     ];
   }
 
-  searchOptionsCriteriaToPipeline<T extends {}>(
+  searchOptionsCriteriaToPipeline<T extends object>(
     schema: Schema<T>,
     options: SearchOptionsCriteria<T>,
   ): any[] {
@@ -96,8 +116,8 @@ class EntityManager {
     return pipeline;
   }
 
-  async search<T extends {}>(
-    entityKlass: Class<T> ,
+  async search<T extends object>(
+    entityKlass: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T[]> {
@@ -112,19 +132,19 @@ class EntityManager {
       pipeline.push(...this.searchOptionsCriteriaToPipeline(schema, options));
     }
 
-    return await schema.search(pipeline);
+    return schema.search(pipeline);
   }
 
-  async find<T extends {}>(
-    entityKlass: Class<T> ,
+  async find<T extends object>(
+    entityKlass: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T[]> {
     return this.search(entityKlass, criteria, options);
   }
 
-  async findAndCount<T extends {}>(
-    entityKlass: Class<T> ,
+  async findAndCount<T extends object>(
+    entityKlass: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<[T[], number]> {
@@ -136,15 +156,15 @@ class EntityManager {
     return [entities, count];
   }
 
-  async count<T extends {}>(
-    entityKlass: Class<T> ,
+  async count<T extends object>(
+    entityKlass: Class<T>,
     criteria: SearchCriteria<T>,
   ): Promise<number> {
     return getSchemaFor(entityKlass as Class<T>).count(criteria);
   }
 
-  async distinct<T extends {}, X = any>(
-    entityKlass: Class<T> ,
+  async distinct<T extends object, X = any>(
+    entityKlass: Class<T>,
     distinct: string,
     criteria?: SearchCriteria<T>,
   ): Promise<X[]> {
@@ -154,8 +174,8 @@ class EntityManager {
     );
   }
 
-  async findOne<T extends {}>(
-    entityKlass: Class<T> ,
+  async findOne<T extends object>(
+    entityKlass: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T | undefined> {
@@ -167,8 +187,8 @@ class EntityManager {
     return entity;
   }
 
-  async findOneOrFail<T extends {}>(
-    entityKlass: Class<T> ,
+  async findOneOrFail<T extends object>(
+    entityKlass: Class<T>,
     criteria?: SearchCriteria<T>,
     options?: SearchOptionsCriteria<T>,
   ): Promise<T> {
@@ -185,8 +205,8 @@ class EntityManager {
     return entity;
   }
 
-  async findById<T extends {}>(
-    entityKlass: Class<T> ,
+  async findById<T extends object>(
+    entityKlass: Class<T>,
     id: string | ObjectId,
   ): Promise<T | undefined> {
     const schema: Schema<T> = getSchemaFor(entityKlass as Class<T>);
@@ -196,8 +216,8 @@ class EntityManager {
     } as any);
   }
 
-  async findByIdOrFail<T extends {}>(
-    entityKlass: Class<T> ,
+  async findByIdOrFail<T extends object>(
+    entityKlass: Class<T>,
     id: string | ObjectId,
   ): Promise<T> {
     const entity: T | undefined = await this.findById(entityKlass, id);
@@ -209,7 +229,7 @@ class EntityManager {
     return entity;
   }
 
-  async updateEntity<T extends {}>(entity: T): Promise<T> {
+  async updateEntity<T extends object>(entity: T): Promise<T> {
     const entityKlass: Class<T> = entity.constructor as Class<any>;
     const schema: Schema<T> = getSchemaFor(entityKlass);
     const query: any = schema.getTargetSearchCriteria(entity);
@@ -221,7 +241,7 @@ class EntityManager {
     return entity;
   }
 
-  async update<T extends {}>(
+  async update<T extends object>(
     entityKlass: Class<any>,
     criteria: SearchCriteria<T>,
     update: RawEntity<T> | UpdateCriteria<T>,
@@ -232,44 +252,43 @@ class EntityManager {
     if (isUpdateCriteria(update)) {
       if (update.$inc) {
         updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
-          schema.prepareSearchCriteria(update.$inc as any),
+          schema,
+          update.$inc,
         );
       }
 
       if (update.$set) {
-        updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
-          schema.prepareSearchCriteria(update.$set as any),
+        updateQuery.$set = this.mapSearchCriteriaToMatchPipeline(
+          schema,
+          update.$set,
         );
       }
 
       if (update.$unset) {
-        updateQuery.$inc = this.mapSearchCriteriaToMatchPipeline(
-          schema.prepareSearchCriteria(update.$unset as any),
+        updateQuery.$unset = this.mapSearchCriteriaToMatchPipeline(
+          schema,
+          update.$unset,
         );
       }
     } else {
-      updateQuery.$set = this.mapSearchCriteriaToMatchPipeline(
-        schema.prepareSearchCriteria(update),
-      );
+      updateQuery.$set = this.mapSearchCriteriaToMatchPipeline(schema, update);
     }
 
     return schema.update(
-      this.mapSearchCriteriaToMatchPipeline(
-        schema.prepareSearchCriteria(criteria),
-      ),
+      this.mapSearchCriteriaToMatchPipeline(schema, criteria),
       updateQuery,
     );
   }
 
-  async insert<T extends {}>(
+  async insert<T extends object>(
     entityKlass: Class<T>,
     partial: RawEntity<T>,
   ): Promise<T>;
-  async insert<T extends {}>(
+  async insert<T extends object>(
     entityKlass: Class<T>,
     partials: RawEntity<T>[],
   ): Promise<T[]>;
-  async insert<T extends {}>(
+  async insert<T extends object>(
     entityKlass: Class<T>,
     partials: RawEntity<T> | RawEntity<T>[],
   ): Promise<T | T[]> {
@@ -278,10 +297,7 @@ class EntityManager {
     const many: boolean = Array.isArray(partials);
 
     const entities: T[] = await schema.insert(
-      (Array.isArray(partials) ? partials : [partials])
-        .map((partial) => new E(partial))
-        .map((entity) => schema.getOrigin(entity))
-        .map(({ _id, _isNew, ...rest }) => rest),
+      Array.isArray(partials) ? partials : [partials],
     );
 
     if (!many) {
@@ -291,7 +307,7 @@ class EntityManager {
     return entities;
   }
 
-  async save<T extends {}>(entity: T): Promise<T> {
+  async save<T extends object>(entity: T): Promise<T> {
     const entityKlass: Class<T> = entity.constructor as Class<any>;
     const schema: Schema<T> = getSchemaFor(entityKlass);
 
@@ -307,7 +323,7 @@ class EntityManager {
     return entity;
   }
 
-  async reload<T extends {}>(entity: T): Promise<T> {
+  async reload<T extends object>(entity: T): Promise<T> {
     if (this.isNew(entity)) {
       return entity;
     }
@@ -321,20 +337,18 @@ class EntityManager {
     return entity;
   }
 
-  async remove<T extends {}>(
+  async remove<T extends object>(
     entityKlass: Class<any>,
     criteria: SearchCriteria<T>,
   ): Promise<DeleteWriteOpResultObject> {
     const schema: Schema<T> = getSchemaFor(entityKlass);
 
-    return await schema.remove(
-      this.mapSearchCriteriaToMatchPipeline(
-        schema.prepareSearchCriteria(criteria),
-      ),
+    return schema.remove(
+      this.mapSearchCriteriaToMatchPipeline(schema, criteria),
     );
   }
 
-  async removeEntity<T extends {}>(entity: T): Promise<boolean> {
+  async removeEntity<T extends object>(entity: T): Promise<boolean> {
     const entityKlass: Class<T> = entity.constructor as Class<any>;
     const schema: Schema<T> = getSchemaFor(entityKlass);
 
@@ -349,7 +363,7 @@ class EntityManager {
     return false;
   }
 
-  async aggregate<T extends {}, X = any>(
+  async aggregate<T extends object, X = any>(
     entityKlass: Class<any>,
     pipeline: any[],
   ): Promise<X[]> {

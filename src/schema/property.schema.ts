@@ -3,7 +3,7 @@ import { Class } from 'utility-types';
 import { flatten, head } from 'lodash/fp';
 import { EntityLike, PropertyTypes } from '../interfaces';
 
-export class PropertySchema<T extends {}> {
+export class PropertySchema<T extends object> {
   private alias?: keyof T;
   private type!: PropertyTypes;
   private arrayDeepness = 0;

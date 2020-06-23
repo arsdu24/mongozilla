@@ -7,7 +7,7 @@ import { ActiveRecord } from '../../active-record';
 export function BelongsTo<T extends ActiveRecord<T>>(
   type: () => Class<T>,
 ): KlassPropDecorator {
-  return <T extends {}, K extends keyof T>(target: T, propName: K) => {
+  return <T extends object, K extends keyof T>(target: T, propName: K) => {
     const entitySchema: Schema<T> = getSchemaFor(
       target.constructor as Class<T>,
     );

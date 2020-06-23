@@ -1,10 +1,10 @@
-import {RawEntity} from "../entity-like.type";
+import { RawEntity } from '../entity-like.type';
 
 export type KeysWith<T, X> = {
   [P in keyof T]?: X;
 };
 
-export type UpdateCriteria<T extends {}> = {
+export type UpdateCriteria<T extends object> = {
   $inc?: KeysWith<T, number>;
   $set?: RawEntity<T> | T;
   $unset?: RawEntity<T> | T;

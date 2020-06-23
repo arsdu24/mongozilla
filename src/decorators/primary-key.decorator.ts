@@ -3,7 +3,7 @@ import { getSchemaFor, PropertySchema, Schema } from '../schema';
 import { Class } from 'utility-types';
 
 export function PrimaryKey(): KlassPropDecorator {
-  return <T extends {}, K extends keyof T>(target: T, propName: K) => {
+  return <T extends object, K extends keyof T>(target: T, propName: K) => {
     const entitySchema: Schema<T> = getSchemaFor(
       target.constructor as Class<T>,
     );

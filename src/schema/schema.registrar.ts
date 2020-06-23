@@ -3,7 +3,7 @@ import { Schema } from './schema';
 
 const entitiesSchemaMap: Map<Class<any>, Schema<any>> = new Map();
 
-export function getSchemaFor<T extends {}>(E: Class<T>): Schema<T> {
+export function getSchemaFor<T extends object>(E: Class<T>): Schema<T> {
   let entitySchema: Schema<T> | undefined = entitiesSchemaMap.get(E);
 
   if (!entitySchema) {

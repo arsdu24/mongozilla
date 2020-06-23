@@ -1,11 +1,19 @@
-import {Class} from 'utility-types';
-import {getEntityManager} from './entity-manager';
-import {SearchCriteria, SearchOptionsCriteria, UpdateCriteria,} from './interfaces/criteria';
-import {getSchemaFor} from './schema';
-import {DeleteWriteOpResultObject, ObjectId, UpdateWriteOpResult,} from 'mongodb';
-import {RawEntity} from './interfaces';
+import { Class } from 'utility-types';
+import { getEntityManager } from './entity-manager';
+import {
+  SearchCriteria,
+  SearchOptionsCriteria,
+  UpdateCriteria,
+} from './interfaces/criteria';
+import { getSchemaFor } from './schema';
+import {
+  DeleteWriteOpResultObject,
+  ObjectId,
+  UpdateWriteOpResult,
+} from 'mongodb';
+import { RawEntity } from './interfaces';
 
-export abstract class ActiveRecord<T extends {}> {
+export abstract class ActiveRecord<T extends object> {
   constructor(partial?: RawEntity<T>) {
     getSchemaFor(
       this.constructor as Class<any>,
@@ -35,10 +43,10 @@ export abstract class ActiveRecord<T extends {}> {
     return new this(partial);
   }
 
-  static merge<T extends ActiveRecord<T>, C extends RawEntity<T>>(
+  static merge<T extends ActiveRecord<T>>(
     this: Class<T>,
     entity: T,
-    ...partials: C[]
+    ...partials: RawEntity<T>[]
   ): T {
     return getEntityManager().merge(this, entity, ...partials);
   }
