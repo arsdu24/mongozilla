@@ -22,7 +22,7 @@ import {
   ObjectId,
   UpdateWriteOpResult,
 } from 'mongodb';
-import { getConnection } from '../connection';
+import { getEntityConnection } from '../connection';
 
 export class Schema<T extends object> {
   private primaryKeySchema?: PropertySchema<T>;
@@ -50,7 +50,7 @@ export class Schema<T extends object> {
   }
 
   get collection(): Collection {
-    return getConnection(this.options.connection).getCollection(
+    return getEntityConnection(this.entityClass).getCollection(
       this.options.collection,
     );
   }
@@ -60,6 +60,10 @@ export class Schema<T extends object> {
   }
 
   getCollectionName(): string {
+    return this.options.collection;
+  }
+
+  getConnectionName(): string {
     return this.options.collection;
   }
 

@@ -1,4 +1,7 @@
 import { Collection, MongoClient, MongoClientOptions } from 'mongodb';
+import { ConnectionNotFoundException } from './exceptions';
+import { Class } from 'utility-types';
+import { getSchemaFor } from './schema';
 
 const connectionsMap: Map<string, Connection> = new Map();
 
@@ -27,11 +30,16 @@ class Connection {
   }
 }
 
-export function getConnection(name = 'default'): Connection {
-  const conn: Connection | undefined = connectionsMap.get(name);
+export function getEntityConnection<T extends object>(
+  entity: Class<T>,
+): Connection {
+  const connectionName: string = getSchemaFor(entity).getConnectionName();
+  const conn: Connection | undefined = connectionsMap.get(connectionName);
 
   if (!conn) {
-    throw new Error(`Cannot found connection by name '${name}'`);
+    throw new ConnectionNotFoundException(entity, connectionName, {
+      connectionsMap,
+    });
   }
 
   return conn;

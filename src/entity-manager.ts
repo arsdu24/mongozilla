@@ -14,6 +14,7 @@ import {
   UpdateWriteOpResult,
 } from 'mongodb';
 import { RawEntity } from './interfaces';
+import { EntityNotFoundException } from './exceptions';
 
 class EntityManager {
   private static instance?: EntityManager;
@@ -199,7 +200,7 @@ class EntityManager {
     );
 
     if (!entity) {
-      throw new Error(`Entity not found`);
+      throw new EntityNotFoundException(entityKlass, criteria, options);
     }
 
     return entity;
@@ -213,7 +214,7 @@ class EntityManager {
 
     return this.findOne(entityKlass, {
       [schema.getIdProp()]: 'string' === typeof id ? new ObjectId(id) : id,
-    } as any);
+    });
   }
 
   async findByIdOrFail<T extends object>(
@@ -223,7 +224,10 @@ class EntityManager {
     const entity: T | undefined = await this.findById(entityKlass, id);
 
     if (!entity) {
-      throw new Error(`Entity not found`);
+      throw new EntityNotFoundException(entityKlass, {
+        [getSchemaFor(entityKlass).getIdProp()]:
+          'string' === typeof id ? new ObjectId(id) : id,
+      });
     }
 
     return entity;
