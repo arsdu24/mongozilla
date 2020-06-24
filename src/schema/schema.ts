@@ -64,7 +64,7 @@ export class Schema<T extends object> {
   }
 
   getConnectionName(): string {
-    return this.options.collection;
+    return this.options.connection || 'default';
   }
 
   hasPrimaryKey(): boolean {

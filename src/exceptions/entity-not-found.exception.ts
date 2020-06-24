@@ -10,7 +10,7 @@ export class EntityNotFoundException<
     readonly criteria: SearchCriteria<T> = {},
     readonly options: SearchOptionsCriteria<T> = {},
   ) {
-    super(entity, `Entity not fount`, {
+    super(entity, `Entity not found`, {
       criteria,
       options,
     });
