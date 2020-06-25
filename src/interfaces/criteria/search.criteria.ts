@@ -22,7 +22,7 @@ enum LogicalOperatorsQueryOperatorsEnum {
   AND = '$and',
 }
 
-export type Query<T> = {
+type Query<T> = {
   [QueryOperatorsEnum.EXISTS]?: boolean;
   [QueryOperatorsEnum.EQUAL]?: T;
   [QueryOperatorsEnum.NOT_EQUAL]?: T;
@@ -52,11 +52,11 @@ type RawEntitySearchCriteria<T extends object> = {
     : TypedSearchCriteria<T[P]>;
 };
 
-type EntityBasedSearchQuery<T extends object> = RawEntitySearchCriteria<
+export type EntityBasedSearchQuery<T extends object> = RawEntitySearchCriteria<
   Pick<T, NonFunctionKeys<T>>
 >;
 
-type LogicalOperatorsSearchCriteria<T extends object> = {
+export type LogicalOperatorsSearchCriteria<T extends object> = {
   [LogicalOperatorsQueryOperatorsEnum.OR]?: EntityBasedSearchQuery<T>[];
   [LogicalOperatorsQueryOperatorsEnum.AND]?: EntityBasedSearchQuery<T>[];
 };

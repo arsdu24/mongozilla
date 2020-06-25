@@ -157,7 +157,7 @@ export class Schema<T extends object> {
       (def: EntityLike<T>, schema: PropertySchema<T>) => ({
         ...def,
         [schema.getOriginName()]:
-          schema.getDefault() || data[schema.getOriginName()],
+            data[schema.getOriginName()] || schema.getDefault(),
       }),
       {} as EntityLike<T>,
     );
