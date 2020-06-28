@@ -44,6 +44,7 @@ class EntityManager {
         null !== value &&
         !Array.isArray(value) &&
         !(value instanceof ObjectId) &&
+        !(value instanceof RegExp) &&
         !isSearchCriteria(value)
       ) {
         return {
@@ -151,7 +152,7 @@ class EntityManager {
   ): Promise<[T[], number]> {
     const [entities, count]: [T[], number] = await Promise.all([
       await this.search(entityKlass, criteria, options),
-      await this.count(entityKlass, criteria || ({} as SearchCriteria<T>)),
+      await this.count(entityKlass, {}),
     ]);
 
     return [entities, count];
