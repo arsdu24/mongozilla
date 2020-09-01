@@ -43,12 +43,6 @@ export class Schema<T extends object> {
     };
   }
 
-  isValid(): boolean {
-    return ![...this.relations.values()].some(
-      (relation) => !relation.isValid(),
-    );
-  }
-
   get collection(): Collection {
     return getEntityConnection(this.entityClass).getCollection(
       this.options.collection,
@@ -157,7 +151,7 @@ export class Schema<T extends object> {
       (def: EntityLike<T>, schema: PropertySchema<T>) => ({
         ...def,
         [schema.getOriginName()]:
-            data[schema.getOriginName()] || schema.getDefault(),
+          data[schema.getOriginName()] || schema.getDefault(),
       }),
       {} as EntityLike<T>,
     );
@@ -290,7 +284,7 @@ export class Schema<T extends object> {
   getOrigin(entity: EntityLike<T>): any {
     const { _isNew, _id, ...rest } = entity._origin;
 
-    return pickBy((value) => !isUndefined(value), rest);
+    return pickBy((value) => !isUndefined(value), rest) || _id || _isNew;
   }
 
   async search(pipeline: any[]): Promise<T[]> {

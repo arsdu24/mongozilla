@@ -25,6 +25,10 @@ class Connection {
     await this.client.connect();
   }
 
+  async close(): Promise<void> {
+    await this.client.close();
+  }
+
   getCollection(collectionName: string): Collection {
     return this.client.db().collection(collectionName);
   }

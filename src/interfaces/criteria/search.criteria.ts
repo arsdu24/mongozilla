@@ -26,8 +26,8 @@ type Query<T> = {
   [QueryOperatorsEnum.EXISTS]?: boolean;
   [QueryOperatorsEnum.EQUAL]?: T;
   [QueryOperatorsEnum.NOT_EQUAL]?: T;
-  [QueryOperatorsEnum.IN]?: T extends any[] ? T : T[];
-  [QueryOperatorsEnum.NOT_IN]?: T extends any[] ? T : T[];
+  [QueryOperatorsEnum.IN]?: [T] extends [(infer U)[]] ? U[] : T[];
+  [QueryOperatorsEnum.NOT_IN]?: [T] extends [(infer U)[]] ? U[] : T[];
   [QueryOperatorsEnum.GREATER_THEN]?: T;
   [QueryOperatorsEnum.GREATER_THEN_OR_EQUAL]?: T;
   [QueryOperatorsEnum.LESS_THEN]?: T;
@@ -44,6 +44,8 @@ type TypedSearchCriteria<T> = T extends object
         }
       : Query<T> | T
     : EntityBasedSearchQuery<T>
+  : T extends boolean
+  ? Query<boolean> | boolean
   : Query<T> | (T extends string ? string | RegExp : T);
 
 type RawEntitySearchCriteria<T extends object> = {

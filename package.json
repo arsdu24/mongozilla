@@ -1,6 +1,6 @@
 {
   "name": "@mongozilla/mongozilla",
-  "version": "0.0.68",
+  "version": "0.1.0",
   "description": "MongoDb ORM",
   "main": "index.js",
   "files": [
@@ -23,12 +23,12 @@
   "peerDependencies": {
     "reflect-metadata": "^0.1",
     "ts-node": "^8.8.2",
-    "typescript": "^3.8.3",
+    "typescript": "^3.9.5",
     "mongodb": "^3.5.5"
   },
   "dependencies": {
-    "utility-types": "^3.10.0",
-    "lodash": "^4.17"
+    "lodash": "^4.17",
+    "utility-types": "^3.10.0"
   },
   "devDependencies": {
     "@types/jest": "^25.2.1",
@@ -37,6 +37,7 @@
     "@types/node": "^13.11.1",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
     "@typescript-eslint/parser": "^2.27.0",
+    "dotenv": "^8.2.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-plugin-import": "^2.20.2",
@@ -51,21 +52,26 @@
     "utility-types": "^3.10.0"
   },
   "jest": {
+    "setupFiles": [
+      "dotenv/config"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "tsconfig.spec.json"
+      }
+    },
     "moduleFileExtensions": [
       "js",
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": "test",
     "testRegex": ".spec.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  },
-  "directories": {
-    "example": "example"
   },
   "repository": {
     "type": "git",
